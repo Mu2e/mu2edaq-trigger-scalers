@@ -5,13 +5,13 @@
 # Category IDs here must match what the DAQ broadcast sends.
 
 display:
-  size: medium                  # small | medium | large | huge
+  size: small                   # small | medium | large | huge
   update_interval_ms: 1000      # Rate refresh period
   window_title: "Mu2e Trigger Scalers"
   columns: 4                    # Scalar widgets per row within each bank
 
 transport:
-  protocol: udp                 # udp | zeromq
+  protocol: zeromq              # udp | zeromq
 
   udp:
     bind_address: "0.0.0.0"    # Bind to all interfaces (receives broadcasts)

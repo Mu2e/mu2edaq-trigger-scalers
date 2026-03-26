@@ -70,6 +70,7 @@ static void printUsage(const char* prog) {
         << "  --socket-type <type>  'pub' or 'push' (default: pub)\n"
         << "  --interval-ms <n>     Send interval in ms (default: 100)\n"
         << "  --rate-scale <f>      Multiply all rates by factor (default: 1.0)\n"
+        << "  --single <id>         Send one message with category <id> (value=1) and exit\n"
         << "  --help                Show this help\n"
         << "\nThe receiver should use:\n"
         << "  socket_type: sub  (for pub)\n"
@@ -104,6 +105,7 @@ int main(int argc, char* argv[]) {
     const std::string socketType = getArg(argc, argv, "--socket-type", "pub");
     const int intervalMs         = std::stoi(getArg(argc, argv, "--interval-ms", "100"));
     const double rateScale       = std::stod(getArg(argc, argv, "--rate-scale",  "1.0"));
+    const std::string singleArg  = getArg(argc, argv, "--single");
 
     if (intervalMs <= 0) {
         std::cerr << "Error: --interval-ms must be > 0\n";
@@ -143,6 +145,22 @@ int main(int argc, char* argv[]) {
         << "  triggers    : " << kNumTriggers << "\n"
         << "Press Ctrl+C to stop.\n\n";
 
+    // --single mode: send one message and exit
+    if (!singleArg.empty()) {
+        const uint32_t id = static_cast<uint32_t>(std::stoul(singleArg, nullptr, 0));
+        TriggerMessage msg;
+        msg.category = id;
+        msg.value    = 1;
+        // Brief delay so subscribers can connect before the message is sent
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        zmq::message_t zmqMsg(sizeof(TriggerMessage));
+        std::memcpy(zmqMsg.data(), &msg, sizeof(TriggerMessage));
+        socket.send(zmqMsg, zmq::send_flags::none);
+        std::cout << "Sent single: category=" << id << " value=1"
+                  << " -> " << endpoint << "\n";
+        return 0;
+    }
+
     // Give subscribers a moment to connect before the first message
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
@@ -164,11 +182,11 @@ int main(int argc, char* argv[]) {
             const uint64_t delta = poissonFire(i, dt * rateScale, rng);
             if (delta == 0) continue;
 
-            counts[i] += delta;
+            counts[i] = delta;  // kept for status display only
 
             TriggerMessage msg;
             msg.category = kTriggers[i].id;
-            msg.count    = counts[i];
+            msg.value    = delta;
 
             zmq::message_t zmqMsg(sizeof(TriggerMessage));
             std::memcpy(zmqMsg.data(), &msg, sizeof(TriggerMessage));

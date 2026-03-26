@@ -16,7 +16,7 @@ public:
                         QWidget* parent = nullptr);
 
     // Route an incoming message to the matching ScalarWidget (if any).
-    void handleMessage(uint32_t category, uint64_t count);
+    void handleMessage(quint32 category, quint64 value);
 
     // Trigger rate recalculation on all contained widgets.
     void refreshRates();

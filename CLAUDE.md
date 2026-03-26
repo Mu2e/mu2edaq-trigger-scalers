@@ -29,12 +29,12 @@ Run:
 
 Every message is a 12-byte little-endian struct (see `src/network/TriggerMessage.h`):
 
-| Offset | Type     | Field      | Meaning                              |
-|--------|----------|------------|--------------------------------------|
-| 0      | uint32_t | `category` | Trigger category index (0-based)     |
-| 4      | uint64_t | `count`    | Cumulative trigger count             |
+| Offset | Type     | Field      | Meaning                                        |
+|--------|----------|------------|------------------------------------------------|
+| 0      | uint32_t | `category` | Trigger category index (0-based)               |
+| 4      | uint64_t | `value`    | Increment to add to the receiver's local count |
 
-The DAQ broadcasts these packets; the application only listens (no replies).
+The receiver maintains its own running total per category and adds each incoming `value` to it. The DAQ broadcasts these packets; the application only listens (no replies).
 
 ## Configuration (`config/scalars.yaml`)
 

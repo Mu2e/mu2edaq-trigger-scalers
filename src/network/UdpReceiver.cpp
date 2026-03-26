@@ -45,6 +45,7 @@ void UdpReceiver::onReadyRead() {
 
         TriggerMessage msg;
         std::memcpy(&msg, data.constData(), sizeof(TriggerMessage));
-        emit messageReceived(msg.category, msg.count);
+        emit messageReceived(static_cast<quint32>(msg.category),
+                             static_cast<quint64>(msg.value));
     }
 }

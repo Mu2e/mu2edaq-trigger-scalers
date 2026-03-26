@@ -16,7 +16,7 @@ public:
     ~MainWindow() override;
 
 private slots:
-    void handleMessage(uint32_t category, uint64_t count);
+    void handleMessage(quint32 category, quint64 value);
     void handleError(const QString& error);
     void onRefreshTimer();
 

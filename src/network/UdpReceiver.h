@@ -19,7 +19,7 @@ public:
     void stop();
 
 signals:
-    void messageReceived(uint32_t category, uint64_t count);
+    void messageReceived(quint32 category, quint64 value);
     void errorOccurred(const QString& error);
 
 private slots:

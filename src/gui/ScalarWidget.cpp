@@ -91,8 +91,8 @@ void ScalarWidget::setupUi(const DisplayConfig& display) {
 // ---------------------------------------------------------------------------
 // Slots
 // ---------------------------------------------------------------------------
-void ScalarWidget::updateCount(uint64_t count) {
-    m_count = count;
+void ScalarWidget::updateCount(quint64 value) {
+    m_count += value;
     m_countLabel->setText(QString::number(m_count));
 }
 
@@ -144,11 +144,11 @@ void ScalarWidget::updateAlarmIndicator() {
     if (tooLow) {
         m_alarmDot->setStyleSheet("color: #ff3030; font-size: 11pt; background: transparent;");
         m_alarmDot->setToolTip(
-            QString("ALARM LOW: %.3f Hz (min %.3f Hz)").arg(m_rate).arg(mn));
+            QString("ALARM LOW: %1 Hz (min %2 Hz)").arg(m_rate, 0, 'f', 3).arg(mn, 0, 'f', 3));
     } else if (tooHigh) {
         m_alarmDot->setStyleSheet("color: #ffaa00; font-size: 11pt; background: transparent;");
         m_alarmDot->setToolTip(
-            QString("ALARM HIGH: %.3f Hz (max %.3f Hz)").arg(m_rate).arg(mx));
+            QString("ALARM HIGH: %1 Hz (max %2 Hz)").arg(m_rate, 0, 'f', 3).arg(mx, 0, 'f', 3));
     } else {
         m_alarmDot->setStyleSheet("color: #30cc30; font-size: 11pt; background: transparent;");
         m_alarmDot->setToolTip(QString("OK: %1 Hz").arg(m_rate, 0, 'f', 3));

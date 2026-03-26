@@ -37,10 +37,10 @@ ScalarBank::ScalarBank(const BankConfig& bankConfig, const DisplayConfig& displa
     }
 }
 
-void ScalarBank::handleMessage(uint32_t category, uint64_t count) {
+void ScalarBank::handleMessage(quint32 category, quint64 value) {
     auto it = m_scalars.find(static_cast<int>(category));
     if (it != m_scalars.end()) {
-        it->second->updateCount(count);
+        it->second->updateCount(value);
     }
 }
 

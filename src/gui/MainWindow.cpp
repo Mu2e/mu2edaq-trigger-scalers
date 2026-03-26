@@ -26,6 +26,7 @@ MainWindow::MainWindow(const AppConfig& config, QWidget* parent)
     setPalette(p);
 
     setupUi();
+    adjustSize();
     setupMenus();
     setupReceiver();
 
@@ -68,6 +69,7 @@ void MainWindow::setupUi() {
     }
     bankLayout->addStretch();
     scroll->setWidget(bankContainer);
+    scroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     mainLayout->addWidget(scroll);
 
     // Status bar
@@ -138,10 +140,10 @@ void MainWindow::setupReceiver() {
 // ---------------------------------------------------------------------------
 // Slots
 // ---------------------------------------------------------------------------
-void MainWindow::handleMessage(uint32_t category, uint64_t count) {
+void MainWindow::handleMessage(quint32 category, quint64 value) {
     ++m_messageCount;
     for (auto* bank : m_banks) {
-        bank->handleMessage(category, count);
+        bank->handleMessage(category, value);
     }
 }
 

@@ -25,7 +25,7 @@ public:
 
 public slots:
     // Called by the message receiver when a new count arrives for this category.
-    void updateCount(uint64_t count);
+    void updateCount(quint64 value);
 
     // Called by the MainWindow timer on each display refresh cycle.
     // Computes instantaneous rate, updates the rolling average, refreshes labels.

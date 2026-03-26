@@ -49,15 +49,21 @@ struct SenderState {
 static void onTick(SenderState& s) {
     const double dt = s.intervalMs / 1000.0;
 
+    // For each trigger category, simulate how many times it fired in this interval
     for (int i = 0; i < kNumTriggers; ++i) {
-        const uint64_t delta = poissonFire(i, dt * s.rateScale, s.rng);
-        if (delta == 0) continue;
 
-        s.counts[i] += delta;
+        // Simulate how many times this trigger fired in the interval, using a Poisson distribution
+        const uint64_t delta = poissonFire(i, dt * s.rateScale, s.rng);
+
+        // If it didn't fire at all, skip sending a message for this category
+        if (delta == 0) continue;
+        
+        // Update the count for this category (for status display only)
+        s.counts[i] = delta;
 
         TriggerMessage msg;
         msg.category = kTriggers[i].id;
-        msg.count    = s.counts[i];
+        msg.value    = delta;
 
         QByteArray buf(sizeof(TriggerMessage), Qt::Uninitialized);
         std::memcpy(buf.data(), &msg, sizeof(TriggerMessage));
@@ -105,11 +111,14 @@ int main(int argc, char* argv[]) {
         "Send interval in milliseconds (default: 100)", "ms", "100");
     QCommandLineOption scaleOpt({"s", "rate-scale"},
         "Multiply all trigger rates by this factor (default: 1.0)", "factor", "1.0");
+    QCommandLineOption singleOpt("single",
+        "Send one message with this category ID (value=1) and exit", "id");
 
     parser.addOption(hostOpt);
     parser.addOption(portOpt);
     parser.addOption(intervalOpt);
     parser.addOption(scaleOpt);
+    parser.addOption(singleOpt);
     parser.process(app);
 
     SenderState state;
@@ -132,6 +141,25 @@ int main(int argc, char* argv[]) {
     // SO_BROADCAST is required for 255.255.255.255
     if (state.host == QHostAddress::Broadcast) {
         state.socket->bind(QHostAddress(QHostAddress::AnyIPv4), 0);
+    }
+
+    // --single mode: send one message and exit
+    if (parser.isSet(singleOpt)) {
+        bool ok = false;
+        const uint32_t id = parser.value(singleOpt).toUInt(&ok, 0);
+        if (!ok) {
+            QTextStream(stderr) << "Invalid category ID: " << parser.value(singleOpt) << "\n";
+            return 1;
+        }
+        TriggerMessage msg;
+        msg.category = id;
+        msg.value    = 1;
+        QByteArray buf(sizeof(TriggerMessage), Qt::Uninitialized);
+        std::memcpy(buf.data(), &msg, sizeof(TriggerMessage));
+        state.socket->writeDatagram(buf, state.host, state.port);
+        QTextStream(stdout) << "Sent single: category=" << id << " value=1"
+                            << " -> " << state.host.toString() << ":" << state.port << "\n";
+        return 0;
     }
 
     QTextStream(stdout)

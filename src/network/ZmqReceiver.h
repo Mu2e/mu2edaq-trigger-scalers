@@ -18,12 +18,13 @@ class ZmqReceiver : public QThread {
 public:
     explicit ZmqReceiver(const QString& endpoint, const QString& socketType,
                          QObject* parent = nullptr);
+    ~ZmqReceiver() override;
 
     // Request the receive loop to exit and wait up to 2 s for the thread.
     void stop();
 
 signals:
-    void messageReceived(uint32_t category, uint64_t count);
+    void messageReceived(quint32 category, quint64 value);
     void errorOccurred(const QString& error);
 
 protected:

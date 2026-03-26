@@ -1,12 +1,17 @@
 #include "ZmqReceiver.h"
 #include "TriggerMessage.h"
 #include <zmq.hpp>
+#include <cerrno>
 #include <cstring>
 
 ZmqReceiver::ZmqReceiver(const QString& endpoint, const QString& socketType, QObject* parent)
     : QThread(parent)
     , m_endpoint(endpoint)
     , m_socketType(socketType) {}
+
+ZmqReceiver::~ZmqReceiver() {
+    stop();
+}
 
 void ZmqReceiver::stop() {
     m_stopping = true;
@@ -38,19 +43,30 @@ void ZmqReceiver::run() {
         }
 
         while (!m_stopping) {
-            zmq::message_t msg;
-            const auto result = socket.recv(msg, zmq::recv_flags::none);
+            try {
+                zmq::message_t msg;
+                const auto result = socket.recv(msg, zmq::recv_flags::none);
 
-            if (!result.has_value()) {
-                // Timeout (EAGAIN) — loop back and check m_stopping
-                continue;
-            }
+                if (!result.has_value()) {
+                    // Timeout (EAGAIN returned as nullopt) — check m_stopping
+                    continue;
+                }
 
-            if (msg.size() == sizeof(TriggerMessage)) {
-                TriggerMessage tm;
-                std::memcpy(&tm, msg.data(), sizeof(TriggerMessage));
-                // Qt queues this to the main thread because the receiver lives there
-                emit messageReceived(tm.category, tm.count);
+                if (msg.size() == sizeof(TriggerMessage)) {
+                    TriggerMessage tm;
+                    std::memcpy(&tm, msg.data(), sizeof(TriggerMessage));
+                    emit messageReceived(static_cast<quint32>(tm.category),
+                                         static_cast<quint64>(tm.value));
+                }
+            } catch (const zmq::error_t& e) {
+                if (e.num() == EAGAIN) {
+                    // Timeout — check m_stopping and retry
+                    continue;
+                }
+                if (!m_stopping) {
+                    emit errorOccurred(QString("ZMQ recv error: %1").arg(e.what()));
+                }
+                break;
             }
         }
     } catch (const zmq::error_t& e) {
