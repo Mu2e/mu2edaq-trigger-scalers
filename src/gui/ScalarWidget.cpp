@@ -39,7 +39,8 @@ void ScalarWidget::setupUi(const DisplayConfig& display) {
         "  border-radius: 4px;"
         "}");
 
-    const int fontSize = countFontSize(display.size);
+    m_fontSize = countFontSize(display.size);
+    const int fontSize = m_fontSize;
 
     // --- Name label (top) ---
     m_nameLabel = new QLabel(QString::fromStdString(m_config.name), this);
@@ -114,6 +115,38 @@ void ScalarWidget::setupUi(const DisplayConfig& display) {
 }
 
 // ---------------------------------------------------------------------------
+// Color scheme
+// ---------------------------------------------------------------------------
+void ScalarWidget::applyColorScheme(const ColorScheme& scheme) {
+    setStyleSheet(QString(
+        "ScalarWidget {"
+        "  background-color: %1;"
+        "  border: 1px solid %2;"
+        "  border-radius: 4px;"
+        "}").arg(scheme.widgetBg.name(), scheme.widgetBorder.name()));
+
+    m_countLabel->setStyleSheet(QString(
+        "color: %1;"
+        "background-color: %2;"
+        "border: 1px solid %3;"
+        "border-radius: 3px;"
+        "padding: 2px 8px;"
+        "font-family: 'Courier New', 'DejaVu Sans Mono', monospace;"
+        "font-size: %4pt;"
+        "font-weight: bold;")
+        .arg(scheme.digitColor.name(), scheme.digitBg.name(),
+             scheme.widgetBorder.name(), QString::number(m_fontSize)));
+
+    m_nameLabel->setStyleSheet(QString(
+        "color: %1; font-size: 9pt; background: transparent;")
+        .arg(scheme.nameColor.name()));
+
+    m_rateLabel->setStyleSheet(QString(
+        "color: %1; font-size: 8pt; background: transparent;")
+        .arg(scheme.rateColor.name()));
+}
+
+// ---------------------------------------------------------------------------
 // Enable / disable
 // ---------------------------------------------------------------------------
 void ScalarWidget::setCountingEnabled(bool enabled) {
@@ -121,6 +154,11 @@ void ScalarWidget::setCountingEnabled(bool enabled) {
     // Sync the LED without re-emitting toggled
     QSignalBlocker blocker(m_enabledLed);
     m_enabledLed->setChecked(enabled);
+}
+
+void ScalarWidget::resetCount() {
+    m_count = 0;
+    m_countLabel->setText("0");
 }
 
 void ScalarWidget::contextMenuEvent(QContextMenuEvent* event) {
@@ -132,6 +170,9 @@ void ScalarWidget::contextMenuEvent(QContextMenuEvent* event) {
     connect(toggleAct, &QAction::triggered, this, [this]() {
         setCountingEnabled(!m_enabled);
     });
+    menu.addSeparator();
+    auto* resetAct = menu.addAction("Reset Count");
+    connect(resetAct, &QAction::triggered, this, &ScalarWidget::resetCount);
     menu.exec(event->globalPos());
 }
 

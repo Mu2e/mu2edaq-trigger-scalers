@@ -38,16 +38,41 @@ ScalarBank::ScalarBank(const BankConfig& bankConfig, const DisplayConfig& displa
     }
 }
 
+void ScalarBank::applyColorScheme(const ColorScheme& scheme) {
+    setStyleSheet(QString(
+        "QGroupBox {"
+        "  color: %1;"
+        "  border: 1px solid %2;"
+        "  border-radius: 5px;"
+        "  margin-top: 8px;"
+        "  font-weight: bold;"
+        "  font-size: 10pt;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  subcontrol-position: top left;"
+        "  padding: 0 6px;"
+        "}").arg(scheme.bankTitle.name(), scheme.bankBorder.name()));
+
+    for (auto* w : m_orderedWidgets)
+        w->applyColorScheme(scheme);
+}
+
+void ScalarBank::resetAll() {
+    for (auto* w : m_orderedWidgets)
+        w->resetCount();
+}
+
 void ScalarBank::setAllEnabled(bool enabled) {
     for (auto* w : m_orderedWidgets)
         w->setCountingEnabled(enabled);
 }
 
-QVector<QPair<QString, quint64>> ScalarBank::csvRows() const {
-    QVector<QPair<QString, quint64>> rows;
+QVector<std::tuple<QString, quint64, double>> ScalarBank::csvRows() const {
+    QVector<std::tuple<QString, quint64, double>> rows;
     rows.reserve(m_orderedWidgets.size());
     for (auto* w : m_orderedWidgets)
-        rows.append({w->triggerName(), w->count()});
+        rows.append({w->triggerName(), w->count(), w->rate()});
     return rows;
 }
 

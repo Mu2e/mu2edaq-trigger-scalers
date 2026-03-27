@@ -1,7 +1,9 @@
 #include "MainWindow.h"
 #include "ScalarBank.h"
+#include "config/Config.h"
 #include "network/UdpReceiver.h"
 #include "network/ZmqReceiver.h"
+#include <QActionGroup>
 #include <QVBoxLayout>
 #include <QScrollArea>
 #include <QMenuBar>
@@ -13,6 +15,7 @@
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QDateTime>
+#include <QFileDialog>
 #include <QMenu>
 #include <QMessageBox>
 
@@ -29,9 +32,18 @@ MainWindow::MainWindow(const AppConfig& config, QWidget* parent)
     p.setColor(QPalette::Text,       QColor(0xcc, 0xcc, 0xcc));
     setPalette(p);
 
+    // Pick the scheme named in the config, fall back to Amber
+    for (const ColorScheme& s : builtinColorSchemes()) {
+        if (s.name.toStdString() == config.display.color_scheme) {
+            m_colorScheme = s;
+            break;
+        }
+    }
+
     setupUi();
-    adjustSize();
     setupMenus();
+    applyColorScheme(m_colorScheme);
+    adjustSize();
     setupReceiver();
 
     m_refreshTimer = new QTimer(this);
@@ -53,7 +65,8 @@ void MainWindow::setupUi() {
     mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->setSpacing(10);
 
-    auto* scroll = new QScrollArea(this);
+    m_scrollArea = new QScrollArea(this);
+    auto* scroll = m_scrollArea;
     scroll->setWidgetResizable(true);
     scroll->setFrameStyle(QFrame::NoFrame);
     scroll->setStyleSheet("QScrollArea { background-color: #121212; border: none; }"
@@ -92,7 +105,11 @@ void MainWindow::setupMenus() {
         "QMenu::item:selected { background-color: #2a4a7a; }";
     menuBar()->setStyleSheet(menuStyle);
 
-    auto* fileMenu = menuBar()->addMenu("&File");
+    auto* fileMenu    = menuBar()->addMenu("&File");
+    auto* saveAct     = fileMenu->addAction("&Save Config...");
+    saveAct->setShortcut(QKeySequence::Save);
+    connect(saveAct, &QAction::triggered, this, &MainWindow::saveConfig);
+    fileMenu->addSeparator();
     auto* quitAct  = fileMenu->addAction("&Quit");
     quitAct->setShortcut(QKeySequence::Quit);
     connect(quitAct, &QAction::triggered, qApp, &QApplication::quit);
@@ -101,6 +118,13 @@ void MainWindow::setupMenus() {
     auto* copyAct   = editMenu->addAction("&Copy Scalers");
     copyAct->setShortcut(QKeySequence::Copy);   // Ctrl+C
     connect(copyAct, &QAction::triggered, this, &MainWindow::copyToClipboard);
+
+    editMenu->addSeparator();
+
+    auto* resetAllAct = editMenu->addAction("Reset All Counts");
+    connect(resetAllAct, &QAction::triggered, this, [this]() {
+        for (auto* bank : m_banks) bank->resetAll();
+    });
 
     editMenu->addSeparator();
 
@@ -113,6 +137,20 @@ void MainWindow::setupMenus() {
         for (auto* bank : m_banks) bank->setAllEnabled(false);
     });
 
+    auto* viewMenu   = menuBar()->addMenu("&View");
+    auto* schemeMenu = viewMenu->addMenu("Color &Scheme");
+    auto* schemeGroup = new QActionGroup(this);
+    schemeGroup->setExclusive(true);
+    for (const ColorScheme& scheme : builtinColorSchemes()) {
+        auto* act = schemeMenu->addAction(scheme.name);
+        act->setCheckable(true);
+        act->setChecked(scheme.name == m_colorScheme.name);
+        schemeGroup->addAction(act);
+        connect(act, &QAction::triggered, this, [this, scheme]() {
+            applyColorScheme(scheme);
+        });
+    }
+
     auto* helpMenu  = menuBar()->addMenu("&Help");
     auto* aboutAct  = helpMenu->addAction("&About");
     connect(aboutAct, &QAction::triggered, this, [this]() {
@@ -121,6 +159,47 @@ void MainWindow::setupMenus() {
             "<p>Real-time trigger rate monitoring for the Mu2e DAQ system.</p>"
             "<p>Supports UDP broadcast and ZeroMQ PUB/PUSH transports.</p>");
     });
+}
+
+void MainWindow::applyColorScheme(const ColorScheme& scheme) {
+    m_colorScheme = scheme;
+    m_config.display.color_scheme = scheme.name.toStdString();
+
+    const QString bg = scheme.windowBg.name();
+
+    centralWidget()->setStyleSheet(QString("background-color: %1;").arg(bg));
+
+    m_scrollArea->setStyleSheet(QString(
+        "QScrollArea { background-color: %1; border: none; }"
+        "QScrollBar:vertical { background: %1; width: 10px; }"
+        "QScrollBar::handle:vertical { background: %2; border-radius: 4px; }")
+        .arg(bg, scheme.widgetBorder.name()));
+    m_scrollArea->widget()->setStyleSheet(
+        QString("background-color: %1;").arg(bg));
+
+    statusBar()->setStyleSheet(QString(
+        "QStatusBar { background-color: %1; color: %2; border-top: 1px solid %3; }")
+        .arg(scheme.statusBg.name(), scheme.nameColor.name(),
+             scheme.statusBorder.name()));
+
+    const QString menuStyle = QString(
+        "QMenuBar { background-color: %1; color: %2; }"
+        "QMenuBar::item:selected { background-color: %3; }"
+        "QMenu { background-color: %1; color: %2; border: 1px solid %4; }"
+        "QMenu::item:selected { background-color: %3; }")
+        .arg(scheme.menuBg.name(), scheme.bankTitle.name(),
+             scheme.menuItemSelectedBg.name(), scheme.bankBorder.name());
+    menuBar()->setStyleSheet(menuStyle);
+
+    QPalette p = palette();
+    p.setColor(QPalette::Window,     scheme.windowBg);
+    p.setColor(QPalette::WindowText, scheme.bankTitle);
+    p.setColor(QPalette::Base,       scheme.widgetBg);
+    p.setColor(QPalette::Text,       scheme.nameColor);
+    setPalette(p);
+
+    for (auto* bank : m_banks)
+        bank->applyColorScheme(scheme);
 }
 
 void MainWindow::contextMenuEvent(QContextMenuEvent* event) {
@@ -133,16 +212,35 @@ void MainWindow::contextMenuEvent(QContextMenuEvent* event) {
     menu.exec(event->globalPos());
 }
 
+void MainWindow::saveConfig() {
+    const QString path = QFileDialog::getSaveFileName(
+        this, "Save Config",
+        QString::fromStdString(m_config.display.window_title).replace(' ', '_') + ".yaml",
+        "YAML Files (*.yaml *.yml);;All Files (*)");
+    if (path.isEmpty()) return;
+
+    try {
+        ::saveConfig(m_config, path.toStdString());
+        m_statusLabel->setText(QString("Config saved: %1").arg(path));
+        m_statusLabel->setStyleSheet(QString("color: %1;")
+            .arg(m_colorScheme.nameColor.name()));
+    } catch (const std::exception& e) {
+        handleError(QString("Save failed: %1").arg(e.what()));
+    }
+}
+
 void MainWindow::copyToClipboard() {
     QString csv = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") + '\n';
     for (auto* bank : m_banks) {
-        for (const auto& [name, count] : bank->csvRows()) {
+        for (const auto& [name, count, rateHz] : bank->csvRows()) {
             // Quote names that contain commas or quotes
             QString quotedName = name;
             if (quotedName.contains(',') || quotedName.contains('"')) {
                 quotedName = '"' + quotedName.replace('"', "\"\"") + '"';
             }
-            csv += quotedName + ',' + QString::number(count) + '\n';
+            csv += quotedName + ','
+                 + QString::number(count) + ','
+                 + QString::number(rateHz, 'f', 3) + '\n';
         }
     }
     QGuiApplication::clipboard()->setText(csv);

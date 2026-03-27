@@ -44,6 +44,7 @@ struct DisplayConfig {
     int update_interval_ms{1000};     // Rate calculation and display refresh interval
     std::string window_title{"Mu2e Trigger Scalers"};
     int columns{4};                   // Scalar widgets per row within each bank
+    std::string color_scheme{"Amber"};
 };
 
 struct AppConfig {
@@ -53,3 +54,4 @@ struct AppConfig {
 };
 
 AppConfig loadConfig(const std::string& filename);
+void      saveConfig(const AppConfig& config, const std::string& filename);

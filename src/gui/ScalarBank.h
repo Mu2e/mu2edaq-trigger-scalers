@@ -1,9 +1,10 @@
 #pragma once
 
 #include "config/Config.h"
+#include "ColorScheme.h"
 #include <QGroupBox>
-#include <QPair>
 #include <QVector>
+#include <tuple>
 #include <unordered_map>
 #include <cstdint>
 
@@ -23,11 +24,15 @@ public:
     // Trigger rate recalculation on all contained widgets.
     void refreshRates();
 
-    // Returns (name, count) pairs for all scalars in config order.
-    QVector<QPair<QString, quint64>> csvRows() const;
+    // Returns (name, count, rate_hz) tuples for all scalars in config order.
+    QVector<std::tuple<QString, quint64, double>> csvRows() const;
 
     // Enable or disable counting on every scalar in this bank.
     void setAllEnabled(bool enabled);
+
+    void resetAll();
+
+    void applyColorScheme(const ColorScheme& scheme);
 
 private:
     std::unordered_map<int, ScalarWidget*> m_scalars;  // keyed by TriggerConfig::id

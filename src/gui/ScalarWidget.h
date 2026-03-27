@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/Config.h"
+#include "ColorScheme.h"
 #include <QFrame>
 #include <cstdint>
 #include <deque>
@@ -25,9 +26,12 @@ public:
     int     triggerId()        const { return m_config.id; }
     QString triggerName()      const { return QString::fromStdString(m_config.name); }
     quint64 count()            const { return static_cast<quint64>(m_count); }
+    double  rate()             const { return m_rate; }
     bool    isCountingEnabled() const { return m_enabled; }
 
     void setCountingEnabled(bool enabled);
+    void applyColorScheme(const ColorScheme& scheme);
+    void resetCount();
 
 public slots:
     // Called by the message receiver when a new count arrives for this category.
@@ -56,6 +60,7 @@ private:
     std::deque<double> m_rateHistory;
 
     bool m_enabled{true};
+    int  m_fontSize{22};
 
     QLabel*      m_nameLabel{nullptr};
     QLabel*      m_countLabel{nullptr};
