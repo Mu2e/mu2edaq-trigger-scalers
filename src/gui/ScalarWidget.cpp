@@ -1,8 +1,9 @@
 #include "ScalarWidget.h"
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QDateTime>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QVBoxLayout>
 
 // ---------------------------------------------------------------------------
 // Font size for the count display
@@ -67,10 +68,31 @@ void ScalarWidget::setupUi(const DisplayConfig& display) {
     m_alarmDot->setToolTip("Alarm disabled");
     m_alarmDot->setFixedWidth(14);
 
+    // --- Enable/disable LED button ---
+    m_enabledLed = new QPushButton(this);
+    m_enabledLed->setCheckable(true);
+    m_enabledLed->setChecked(true);
+    m_enabledLed->setFixedSize(12, 12);
+    m_enabledLed->setToolTip("Click to enable/disable this scaler");
+    m_enabledLed->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #00cc44;"
+        "  border-radius: 6px;"
+        "  border: 1px solid #009933;"
+        "}"
+        "QPushButton:!checked {"
+        "  background-color: #2a2a2a;"
+        "  border: 1px solid #444444;"
+        "}");
+    connect(m_enabledLed, &QPushButton::toggled, this, [this](bool checked) {
+        m_enabled = checked;
+    });
+
     // --- Status row ---
     auto* statusRow = new QHBoxLayout;
     statusRow->setContentsMargins(0, 0, 0, 0);
     statusRow->setSpacing(4);
+    statusRow->addWidget(m_enabledLed);
     statusRow->addWidget(m_rateLabel, 1);
     statusRow->addWidget(m_alarmDot);
 
@@ -92,6 +114,7 @@ void ScalarWidget::setupUi(const DisplayConfig& display) {
 // Slots
 // ---------------------------------------------------------------------------
 void ScalarWidget::updateCount(quint64 value) {
+    if (!m_enabled) return;
     m_count += value;
     m_countLabel->setText(QString::number(m_count));
 }

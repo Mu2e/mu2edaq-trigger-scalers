@@ -6,6 +6,7 @@
 #include <deque>
 
 class QLabel;
+class QPushButton;
 
 // Displays the cumulative count and rolling rate for one trigger category.
 // Visual style: dark "instrument panel" background, amber numeric display.
@@ -48,8 +49,11 @@ private:
     static constexpr int kHistoryDepth = 10;
     std::deque<double> m_rateHistory;
 
-    QLabel* m_nameLabel{nullptr};
-    QLabel* m_countLabel{nullptr};
-    QLabel* m_rateLabel{nullptr};
-    QLabel* m_alarmDot{nullptr};
+    bool m_enabled{true};
+
+    QLabel*      m_nameLabel{nullptr};
+    QLabel*      m_countLabel{nullptr};
+    QLabel*      m_rateLabel{nullptr};
+    QLabel*      m_alarmDot{nullptr};
+    QPushButton* m_enabledLed{nullptr};
 };
