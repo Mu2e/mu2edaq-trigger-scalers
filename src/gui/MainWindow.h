@@ -15,10 +15,14 @@ public:
     explicit MainWindow(const AppConfig& config, QWidget* parent = nullptr);
     ~MainWindow() override;
 
+protected:
+    void contextMenuEvent(QContextMenuEvent* event) override;
+
 private slots:
     void handleMessage(quint32 category, quint64 value);
     void handleError(const QString& error);
     void onRefreshTimer();
+    void copyToClipboard();
 
 private:
     void setupUi();

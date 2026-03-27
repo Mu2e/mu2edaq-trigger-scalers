@@ -21,7 +21,9 @@ public:
     explicit ScalarWidget(const TriggerConfig& config, const DisplayConfig& display,
                           QWidget* parent = nullptr);
 
-    int triggerId() const { return m_config.id; }
+    int     triggerId()   const { return m_config.id; }
+    QString triggerName() const { return QString::fromStdString(m_config.name); }
+    quint64 count()       const { return static_cast<quint64>(m_count); }
 
 public slots:
     // Called by the message receiver when a new count arrives for this category.

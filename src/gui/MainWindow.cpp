@@ -10,6 +10,10 @@
 #include <QLabel>
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
+#include <QContextMenuEvent>
+#include <QDateTime>
+#include <QMenu>
 #include <QMessageBox>
 
 MainWindow::MainWindow(const AppConfig& config, QWidget* parent)
@@ -93,6 +97,11 @@ void MainWindow::setupMenus() {
     quitAct->setShortcut(QKeySequence::Quit);
     connect(quitAct, &QAction::triggered, qApp, &QApplication::quit);
 
+    auto* editMenu  = menuBar()->addMenu("&Edit");
+    auto* copyAct   = editMenu->addAction("&Copy Scalers");
+    copyAct->setShortcut(QKeySequence::Copy);   // Ctrl+C
+    connect(copyAct, &QAction::triggered, this, &MainWindow::copyToClipboard);
+
     auto* helpMenu  = menuBar()->addMenu("&Help");
     auto* aboutAct  = helpMenu->addAction("&About");
     connect(aboutAct, &QAction::triggered, this, [this]() {
@@ -101,6 +110,33 @@ void MainWindow::setupMenus() {
             "<p>Real-time trigger rate monitoring for the Mu2e DAQ system.</p>"
             "<p>Supports UDP broadcast and ZeroMQ PUB/PUSH transports.</p>");
     });
+}
+
+void MainWindow::contextMenuEvent(QContextMenuEvent* event) {
+    QMenu menu(this);
+    menu.setStyleSheet(
+        "QMenu { background-color: #1e1e1e; color: #cccccc; border: 1px solid #3a3a3a; }"
+        "QMenu::item:selected { background-color: #2a4a7a; }");
+    auto* copyAct = menu.addAction("&Copy Scalers\tCtrl+C");
+    connect(copyAct, &QAction::triggered, this, &MainWindow::copyToClipboard);
+    menu.exec(event->globalPos());
+}
+
+void MainWindow::copyToClipboard() {
+    QString csv = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") + '\n';
+    for (auto* bank : m_banks) {
+        for (const auto& [name, count] : bank->csvRows()) {
+            // Quote names that contain commas or quotes
+            QString quotedName = name;
+            if (quotedName.contains(',') || quotedName.contains('"')) {
+                quotedName = '"' + quotedName.replace('"', "\"\"") + '"';
+            }
+            csv += quotedName + ',' + QString::number(count) + '\n';
+        }
+    }
+    QGuiApplication::clipboard()->setText(csv);
+    m_statusLabel->setText("Copied to clipboard");
+    m_statusLabel->setStyleSheet("color: #888888;");
 }
 
 // ---------------------------------------------------------------------------

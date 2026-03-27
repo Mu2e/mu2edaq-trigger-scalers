@@ -2,6 +2,8 @@
 
 #include "config/Config.h"
 #include <QGroupBox>
+#include <QPair>
+#include <QVector>
 #include <unordered_map>
 #include <cstdint>
 
@@ -21,6 +23,10 @@ public:
     // Trigger rate recalculation on all contained widgets.
     void refreshRates();
 
+    // Returns (name, count) pairs for all scalars in config order.
+    QVector<QPair<QString, quint64>> csvRows() const;
+
 private:
     std::unordered_map<int, ScalarWidget*> m_scalars;  // keyed by TriggerConfig::id
+    QVector<ScalarWidget*> m_orderedWidgets;            // config insertion order
 };

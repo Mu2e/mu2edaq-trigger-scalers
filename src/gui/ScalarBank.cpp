@@ -34,7 +34,16 @@ ScalarBank::ScalarBank(const BankConfig& bankConfig, const DisplayConfig& displa
             if (++col >= maxCols) { col = 0; ++row; }
         }
         m_scalars[trigCfg.id] = widget;
+        m_orderedWidgets.append(widget);
     }
+}
+
+QVector<QPair<QString, quint64>> ScalarBank::csvRows() const {
+    QVector<QPair<QString, quint64>> rows;
+    rows.reserve(m_orderedWidgets.size());
+    for (auto* w : m_orderedWidgets)
+        rows.append({w->triggerName(), w->count()});
+    return rows;
 }
 
 void ScalarBank::handleMessage(quint32 category, quint64 value) {
