@@ -38,6 +38,11 @@ ScalarBank::ScalarBank(const BankConfig& bankConfig, const DisplayConfig& displa
     }
 }
 
+void ScalarBank::setAllEnabled(bool enabled) {
+    for (auto* w : m_orderedWidgets)
+        w->setCountingEnabled(enabled);
+}
+
 QVector<QPair<QString, quint64>> ScalarBank::csvRows() const {
     QVector<QPair<QString, quint64>> rows;
     rows.reserve(m_orderedWidgets.size());

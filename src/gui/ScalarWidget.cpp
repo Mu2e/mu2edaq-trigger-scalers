@@ -1,7 +1,10 @@
 #include "ScalarWidget.h"
+#include <QContextMenuEvent>
 #include <QDateTime>
+#include <QSignalBlocker>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QMenu>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -108,6 +111,28 @@ void ScalarWidget::setupUi(const DisplayConfig& display) {
     if (m_config.target_rate > 0.0) {
         setToolTip(QString("Expected rate: %1 Hz").arg(m_config.target_rate, 0, 'f', 3));
     }
+}
+
+// ---------------------------------------------------------------------------
+// Enable / disable
+// ---------------------------------------------------------------------------
+void ScalarWidget::setCountingEnabled(bool enabled) {
+    m_enabled = enabled;
+    // Sync the LED without re-emitting toggled
+    QSignalBlocker blocker(m_enabledLed);
+    m_enabledLed->setChecked(enabled);
+}
+
+void ScalarWidget::contextMenuEvent(QContextMenuEvent* event) {
+    QMenu menu(this);
+    menu.setStyleSheet(
+        "QMenu { background-color: #1e1e1e; color: #cccccc; border: 1px solid #3a3a3a; }"
+        "QMenu::item:selected { background-color: #2a4a7a; }");
+    auto* toggleAct = menu.addAction(m_enabled ? "Disable Scaler" : "Enable Scaler");
+    connect(toggleAct, &QAction::triggered, this, [this]() {
+        setCountingEnabled(!m_enabled);
+    });
+    menu.exec(event->globalPos());
 }
 
 // ---------------------------------------------------------------------------

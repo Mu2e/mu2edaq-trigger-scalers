@@ -22,9 +22,12 @@ public:
     explicit ScalarWidget(const TriggerConfig& config, const DisplayConfig& display,
                           QWidget* parent = nullptr);
 
-    int     triggerId()   const { return m_config.id; }
-    QString triggerName() const { return QString::fromStdString(m_config.name); }
-    quint64 count()       const { return static_cast<quint64>(m_count); }
+    int     triggerId()        const { return m_config.id; }
+    QString triggerName()      const { return QString::fromStdString(m_config.name); }
+    quint64 count()            const { return static_cast<quint64>(m_count); }
+    bool    isCountingEnabled() const { return m_enabled; }
+
+    void setCountingEnabled(bool enabled);
 
 public slots:
     // Called by the message receiver when a new count arrives for this category.
@@ -33,6 +36,9 @@ public slots:
     // Called by the MainWindow timer on each display refresh cycle.
     // Computes instantaneous rate, updates the rolling average, refreshes labels.
     void refreshRate();
+
+protected:
+    void contextMenuEvent(QContextMenuEvent* event) override;
 
 private:
     void setupUi(const DisplayConfig& display);

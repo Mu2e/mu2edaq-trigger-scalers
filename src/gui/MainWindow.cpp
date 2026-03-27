@@ -102,6 +102,17 @@ void MainWindow::setupMenus() {
     copyAct->setShortcut(QKeySequence::Copy);   // Ctrl+C
     connect(copyAct, &QAction::triggered, this, &MainWindow::copyToClipboard);
 
+    editMenu->addSeparator();
+
+    auto* enableAllAct  = editMenu->addAction("Enable All Scalers");
+    auto* disableAllAct = editMenu->addAction("Disable All Scalers");
+    connect(enableAllAct,  &QAction::triggered, this, [this]() {
+        for (auto* bank : m_banks) bank->setAllEnabled(true);
+    });
+    connect(disableAllAct, &QAction::triggered, this, [this]() {
+        for (auto* bank : m_banks) bank->setAllEnabled(false);
+    });
+
     auto* helpMenu  = menuBar()->addMenu("&Help");
     auto* aboutAct  = helpMenu->addAction("&About");
     connect(aboutAct, &QAction::triggered, this, [this]() {

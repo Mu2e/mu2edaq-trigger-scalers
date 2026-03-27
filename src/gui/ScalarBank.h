@@ -26,6 +26,9 @@ public:
     // Returns (name, count) pairs for all scalars in config order.
     QVector<QPair<QString, quint64>> csvRows() const;
 
+    // Enable or disable counting on every scalar in this bank.
+    void setAllEnabled(bool enabled);
+
 private:
     std::unordered_map<int, ScalarWidget*> m_scalars;  // keyed by TriggerConfig::id
     QVector<ScalarWidget*> m_orderedWidgets;            // config insertion order
