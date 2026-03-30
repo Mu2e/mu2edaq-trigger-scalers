@@ -50,8 +50,15 @@ endif()
 # ---------------------------------------------------------------------------
 # yaml-cpp
 # ---------------------------------------------------------------------------
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 find_package(yaml-cpp REQUIRED)
-
+# yaml-cpp < 0.7 exports the non-namespaced target "yaml-cpp"; >= 0.7 exports
+# "yaml-cpp::yaml-cpp".  Create an alias so the rest of the build always uses
+# the namespaced form.
+if(TARGET yaml-cpp AND NOT TARGET yaml-cpp::yaml-cpp)
+    add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
+endif()
 # ---------------------------------------------------------------------------
 # ZeroMQ (optional)
 # ---------------------------------------------------------------------------
