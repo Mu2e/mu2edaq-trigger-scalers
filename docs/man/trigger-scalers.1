@@ -1,0 +1,218 @@
+.TH TRIGGER-SCALERS 1 "2026-03-30" "Mu2e DAQ" "User Commands"
+.SH NAME
+trigger-scalers \- real-time trigger scalar monitoring GUI for the Mu2e DAQ system
+.SH SYNOPSIS
+.B trigger-scalers
+[\fB\-c\fR \fIfile\fR]
+[\fB\-\-protocol\fR \fIproto\fR]
+[\fB\-\-size\fR \fIsize\fR]
+[\fB\-\-interval\-ms\fR \fIms\fR]
+[\fB\-\-columns\fR \fIn\fR]
+[\fB\-\-udp\-address\fR \fIaddr\fR]
+[\fB\-\-udp\-port\fR \fIport\fR]
+[\fB\-\-zmq\-endpoint\fR \fIurl\fR]
+[\fB\-\-zmq\-port\fR \fIport\fR]
+.SH DESCRIPTION
+.B trigger-scalers
+is a Qt-based GUI application that monitors trigger scalar counts for the
+Mu2e experiment DAQ system at Fermilab.
+It listens for 12-byte broadcast messages over UDP or ZeroMQ, each carrying
+a trigger category index and an increment value.
+The application accumulates per-category counts, computes rolling-average
+rates in Hz, and displays them in a Nixie-tube-inspired dark panel with
+configurable rate alarms.
+.PP
+Multiple trigger categories are organised into named
+.I banks
+as defined in the YAML configuration file.
+Each trigger widget shows its cumulative count, current rate, and an alarm
+indicator dot that changes colour when the rate falls outside configured
+thresholds.
+.PP
+The display is fully configurable via a YAML file; most settings can also be
+overridden on the command line without editing the file.
+.SH OPTIONS
+.TP
+.BR \-c ", " \-\-config " " \fIfile\fR
+Path to the YAML configuration file.
+Default: \fBscalars.yaml\fR in the current directory.
+.TP
+.B \-\-protocol " " \fIproto\fR
+Override the transport protocol from the config file.
+Accepted values: \fBudp\fR, \fBzeromq\fR.
+.TP
+.B \-\-size " " \fIsize\fR
+Override the display size, which controls the count digit font size.
+Accepted values: \fBsmall\fR, \fBmedium\fR, \fBlarge\fR, \fBhuge\fR.
+.TP
+.B \-\-interval\-ms " " \fIms\fR
+Override the rate update interval in milliseconds.
+The GUI recomputes and displays rates at this frequency.
+.TP
+.B \-\-columns " " \fIn\fR
+Override the number of scalar widgets per row within each bank.
+.TP
+.B \-\-udp\-address " " \fIaddr\fR
+Override the UDP bind address (e.g.\& \fB0.0.0.0\fR to listen on all interfaces).
+Only used when the protocol is \fBudp\fR.
+.TP
+.B \-\-udp\-port " " \fIport\fR
+Override the UDP bind port.
+Only used when the protocol is \fBudp\fR.
+.TP
+.B \-\-zmq\-endpoint " " \fIurl\fR
+Override the full ZeroMQ endpoint URL (e.g.\& \fBtcp://daq\-host:5556\fR).
+Only used when the protocol is \fBzeromq\fR.
+.TP
+.B \-\-zmq\-port " " \fIport\fR
+Replace only the port number in the configured ZeroMQ endpoint.
+Can be combined with \fB\-\-zmq\-endpoint\fR.
+.TP
+.BR \-h ", " \-\-help
+Display a brief usage summary and exit.
+.TP
+.B \-\-version
+Display the application version and exit.
+.SH CONFIGURATION FILE
+The configuration file is YAML with three top-level sections:
+.SS display
+.TP
+.B size
+Counter digit font size: \fBsmall\fR | \fBmedium\fR | \fBlarge\fR | \fBhuge\fR.
+.TP
+.B update_interval_ms
+Rate refresh interval in milliseconds (default 1000).
+.TP
+.B columns
+Scalar widgets per row (default 4).
+.TP
+.B color_scheme
+Built-in colour scheme name.
+One of: \fBAmber\fR, \fBGreen Phosphor\fR, \fBBlue\fR, \fBRed\fR, \fBLight\fR.
+.SS transport
+.TP
+.B protocol
+\fBudp\fR or \fBzeromq\fR.
+.TP
+.B udp.bind_address
+Interface address to listen on (e.g.\& \fB0.0.0.0\fR).
+.TP
+.B udp.port
+UDP port number.
+.TP
+.B zeromq.endpoint
+ZeroMQ connection string (e.g.\& \fBtcp://localhost:5556\fR).
+.TP
+.B zeromq.socket_type
+\fBsub\fR for PUB/SUB pattern; \fBpull\fR for PUSH/PULL pattern.
+.SS banks
+A YAML sequence of bank objects.
+Each bank has a \fBname\fR and a \fBtriggers\fR sequence.
+Each trigger has:
+.TP
+.B id
+Integer category index matching the \fBcategory\fR field of incoming messages.
+.TP
+.B name
+Display label for the trigger.
+.TP
+.B target_rate
+Expected rate in Hz (informational only).
+.TP
+.B visible
+Boolean; \fBfalse\fR hides the widget but still accumulates counts.
+.TP
+.B alarm.enabled
+Boolean; enables rate threshold monitoring.
+.TP
+.B alarm.min_rate
+Lower rate threshold in Hz.
+A rate below this turns the alarm dot red.
+Set to \fB\-1\fR to disable.
+.TP
+.B alarm.max_rate
+Upper rate threshold in Hz.
+A rate above this turns the alarm dot yellow.
+Set to \fB\-1\fR to disable.
+.SH WIRE PROTOCOL
+Each incoming message is a 12-byte little-endian binary struct:
+.PP
+.TS
+l l l l.
+Offset	Type	Field	Meaning
+0	uint32_t	category	Trigger category index (0-based)
+4	uint64_t	value	Increment to add to the running count
+.TE
+.PP
+The receiver adds each incoming \fBvalue\fR to its local running total for the
+given \fBcategory\fR.
+The application never sends replies.
+.SH GUI
+.SS Alarm indicator colours
+.TP
+Grey
+Alarm disabled.
+.TP
+Green
+Rate is within [min_rate, max_rate].
+.TP
+Red
+Rate is below min_rate.
+.TP
+Yellow
+Rate is above max_rate.
+.SS Colour schemes
+Five built-in schemes are available via the \fBView \(-> Color Scheme\fR menu:
+\fBAmber\fR (default), \fBGreen Phosphor\fR, \fBBlue\fR, \fBRed\fR, \fBLight\fR.
+The active scheme is saved when using \fBFile \(-> Save Config\fR.
+.SS Keyboard shortcuts
+.TP
+.B Ctrl+S
+Save current configuration to a YAML file.
+.TP
+.B Ctrl+C
+Copy all scaler names, counts, and rates to the clipboard as CSV.
+.TP
+.B Ctrl+Q
+Quit.
+.SS Context menu
+Right-clicking a scalar widget provides options to enable/disable that
+specific scaler and to reset its count to zero.
+.SH CLIPBOARD FORMAT
+The clipboard CSV begins with a timestamp line followed by one row per scaler:
+.PP
+.nf
+2026-03-30 09:15:42
+Mu2e Spill,12345,0.587
+Booster Spill,67890,14.923
+.fi
+.PP
+Fields: \fIname\fR, \fIcount\fR, \fIrate_hz\fR.
+Names containing commas or double-quotes are quoted per RFC 4180.
+.SH FILES
+.TP
+.I config/scalars.yaml
+Default configuration file shipped with the application.
+.SH EXAMPLES
+Start with the default config:
+.PP
+.nf
+trigger-scalers -c config/scalars.yaml
+.fi
+.PP
+Override the protocol and port from the command line:
+.PP
+.nf
+trigger-scalers -c config/scalars.yaml --protocol zeromq --zmq-port 5557
+.fi
+.PP
+Use a large font and four-column layout:
+.PP
+.nf
+trigger-scalers -c config/scalars.yaml --size large --columns 4
+.fi
+.SH SEE ALSO
+.BR udp-sender (1),
+.BR zmq-sender (1)
+.SH AUTHORS
+Mu2e DAQ Group, Fermi National Accelerator Laboratory.

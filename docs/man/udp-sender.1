@@ -1,0 +1,106 @@
+.TH UDP-SENDER 1 "2026-03-30" "Mu2e DAQ" "User Commands"
+.SH NAME
+udp-sender \- simulated UDP trigger broadcast sender for trigger-scalers testing
+.SH SYNOPSIS
+.B udp-sender
+[\fB\-H\fR \fIaddr\fR]
+[\fB\-p\fR \fIport\fR]
+[\fB\-i\fR \fIms\fR]
+[\fB\-s\fR \fIfactor\fR]
+[\fB\-\-single\fR \fIid\fR]
+.SH DESCRIPTION
+.B udp-sender
+is a Qt-based test tool that simulates the Mu2e DAQ trigger broadcast without
+requiring real DAQ hardware.
+It generates Poisson-distributed trigger events at the rates defined in
+.IR tools/SimulatedTriggers.h ,
+packages them as 12-byte
+.I TriggerMessage
+structs, and sends them as UDP datagrams to the configured destination.
+.PP
+Each send interval the tool iterates over every configured trigger category.
+If a category fires (determined by a Poisson sample), a message is sent with
+that category's ID and the number of firings as the increment value.
+Categories that do not fire in a given interval produce no message.
+.PP
+A status line is printed to standard output every second:
+.PP
+.nf
+[  1.0s] pkts=42 | 0:1 1:14 2:10 3:11 4:0 5:1 ...
+.fi
+.PP
+Each entry shows \fIcategory_id\fR:\fIcumulative_count\fR.
+.PP
+This tool is intended for use with
+.BR trigger-scalers (1)
+configured to use the \fBudp\fR protocol.
+.SH OPTIONS
+.TP
+.BR \-H ", " \-\-host " " \fIaddr\fR
+Destination IP address.
+Default: \fB127.0.0.1\fR (loopback).
+Use \fB255.255.255.255\fR to broadcast to all hosts on the local subnet
+(requires the socket to be bound; this is handled automatically).
+.TP
+.BR \-p ", " \-\-port " " \fIport\fR
+Destination UDP port number.
+Default: \fB5555\fR.
+Must match \fBtransport.udp.port\fR in the receiver's configuration.
+.TP
+.BR \-i ", " \-\-interval\-ms " " \fIms\fR
+Send interval in milliseconds.
+The tool samples all trigger categories and sends any non-zero increments
+once per interval.
+Default: \fB100\fR.
+.TP
+.BR \-s ", " \-\-rate\-scale " " \fIfactor\fR
+Multiply all simulated trigger rates by this factor before Poisson sampling.
+Values greater than 1 produce higher rates; values between 0 and 1 produce
+lower rates.
+Default: \fB1.0\fR.
+.TP
+.B \-\-single " " \fIid\fR
+Send a single message with the given category ID and a value of 1, then exit.
+The \fIid\fR may be specified in decimal (e.g.\& \fB14\fR) or hexadecimal with
+the \fB0x\fR prefix (e.g.\& \fB0x00E\fR).
+.TP
+.BR \-h ", " \-\-help
+Display usage information and exit.
+.TP
+.B \-\-version
+Display the version and exit.
+.SH EXAMPLES
+Send to the local loopback at 100 ms intervals (default behaviour):
+.PP
+.nf
+udp-sender
+.fi
+.PP
+Broadcast to the local subnet on port 5555:
+.PP
+.nf
+udp-sender --host 255.255.255.255 --port 5555
+.fi
+.PP
+Run at 10 times the normal rates with a 50 ms interval:
+.PP
+.nf
+udp-sender --rate-scale 10 --interval-ms 50
+.fi
+.PP
+Send a single message for trigger category 0x00E and exit:
+.PP
+.nf
+udp-sender --single 0x00E
+.fi
+.PP
+Send a single message for trigger category 3 to a remote host:
+.PP
+.nf
+udp-sender --host 192.168.1.100 --single 3
+.fi
+.SH SEE ALSO
+.BR trigger-scalers (1),
+.BR zmq-sender (1)
+.SH AUTHORS
+Mu2e DAQ Group, Fermi National Accelerator Laboratory.

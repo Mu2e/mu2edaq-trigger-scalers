@@ -1,0 +1,117 @@
+display:
+  size: small
+  update_interval_ms: 1000
+  window_title: Mu2e Trigger Scalers
+  columns: 4
+  color_scheme: Green Phosphor
+transport:
+  protocol: zeromq
+  udp:
+    bind_address: 0.0.0.0
+    port: 5555
+  zeromq:
+    endpoint: tcp://localhost:5556
+    socket_type: sub
+banks:
+  - name: "Beam & Timing Triggers"
+    triggers:
+      - id: 0
+        name: Mu2e Spill
+        target_rate: 0.6
+        visible: true
+        alarm:
+          enabled: true
+          min_rate: 0.1
+          max_rate: 2
+      - id: 1
+        name: Booster Spill
+        target_rate: 15
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 2
+        name: Cosmics Pulser
+        target_rate: 10
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 3
+        name: Pulser (Rand)
+        target_rate: 10
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 4
+        name: Manual
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 5
+        name: Accelerator Ext
+        target_rate: 1
+        visible: true
+        alarm:
+          enabled: true
+          min_rate: 0.5
+          max_rate: 2
+  - name: Data-Driven Triggers
+    triggers:
+      - id: 6
+        name: "Helix: Base"
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 7
+        name: "Helix: Tight"
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 8
+        name: "Helix: Prescale"
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 9
+        name: "Activity: Base"
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+  - name: Summary
+    triggers:
+      - id: 16
+        name: "Helix: All"
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1
+      - id: 17
+        name: All Triggers
+        target_rate: -1
+        visible: true
+        alarm:
+          enabled: false
+          min_rate: -1
+          max_rate: -1

@@ -130,6 +130,13 @@ endif()
 # ---------------------------------------------------------------------------
 install(TARGETS trigger-scalers DESTINATION bin)
 install(FILES config/scalars.yaml DESTINATION share/trigger-scalers)
+install(FILES docs/man/trigger-scalers.1 DESTINATION share/man/man1)
+if(BUILD_TOOLS)
+    install(FILES docs/man/udp-sender.1 DESTINATION share/man/man1)
+    if(WITH_ZEROMQ)
+        install(FILES docs/man/zmq-sender.1 DESTINATION share/man/man1)
+    endif()
+endif()
 
 if(BUILD_TOOLS)
     install(TARGETS udp-sender DESTINATION bin)

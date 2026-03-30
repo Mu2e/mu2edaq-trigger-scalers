@@ -1,0 +1,142 @@
+.TH ZMQ-SENDER 1 "2026-03-30" "Mu2e DAQ" "User Commands"
+.SH NAME
+zmq-sender \- simulated ZeroMQ trigger sender for trigger-scalers testing
+.SH SYNOPSIS
+.B zmq-sender
+[\fB\-\-endpoint\fR \fIurl\fR]
+[\fB\-\-socket\-type\fR \fItype\fR]
+[\fB\-\-interval\-ms\fR \fIms\fR]
+[\fB\-\-rate\-scale\fR \fIfactor\fR]
+[\fB\-\-single\fR \fIid\fR]
+.SH DESCRIPTION
+.B zmq-sender
+is a plain C++ (no Qt) test tool that simulates the Mu2e DAQ trigger
+broadcast over ZeroMQ without requiring real DAQ hardware.
+It generates Poisson-distributed trigger events at the rates defined in
+.IR tools/SimulatedTriggers.h ,
+packages them as 12-byte
+.I TriggerMessage
+structs, and publishes them via a ZeroMQ PUB or PUSH socket.
+.PP
+The sender
+.I binds
+its socket to the configured endpoint.
+The
+.BR trigger-scalers (1)
+receiver
+.I connects
+to that endpoint.
+This is the standard ZeroMQ server/client topology for PUB/SUB and PUSH/PULL.
+.PP
+Each send interval the tool iterates over every configured trigger category.
+If a category fires (determined by a Poisson sample), a message is sent with
+that category's ID and the number of firings as the increment value.
+Categories that do not fire in a given interval produce no message.
+Messages are sent with the \fBDONTWAIT\fR flag; if no subscriber is connected
+the message is silently discarded by ZeroMQ.
+.PP
+A brief delay of 200 ms is observed at startup before the first messages are
+sent, giving subscribers time to connect before transmissions begin.
+.PP
+A status line is printed to standard output every second:
+.PP
+.nf
+[  1.0s] pkts=42 | 0:1 1:14 2:10 3:11 4:0 5:1 ...
+.fi
+.PP
+Each entry shows \fIcategory_id\fR:\fIcumulative_count\fR.
+.PP
+This tool is only available when the project is built with
+.BR \-DWITH_ZEROMQ=ON .
+.SH OPTIONS
+.TP
+.B \-\-endpoint " " \fIurl\fR
+ZeroMQ endpoint to bind.
+Default: \fBtcp://0.0.0.0:5556\fR.
+The receiver's \fBtransport.zeromq.endpoint\fR must point to this host and port.
+.TP
+.B \-\-socket\-type " " \fItype\fR
+ZeroMQ socket type.
+Accepted values:
+.RS
+.TP
+.B pub
+PUB socket (PUB/SUB pattern).
+The receiver must be configured with \fBsocket_type: sub\fR.
+This is the default.
+.TP
+.B push
+PUSH socket (PUSH/PULL pipeline).
+The receiver must be configured with \fBsocket_type: pull\fR.
+.RE
+.TP
+.B \-\-interval\-ms " " \fIms\fR
+Send interval in milliseconds.
+Default: \fB100\fR.
+.TP
+.B \-\-rate\-scale " " \fIfactor\fR
+Multiply all simulated trigger rates by this factor before Poisson sampling.
+Default: \fB1.0\fR.
+.TP
+.B \-\-single " " \fIid\fR
+Send a single message with the given category ID and a value of 1, then exit.
+A 200 ms connection delay is applied before sending to allow subscribers to
+connect.
+The \fIid\fR may be specified in decimal (e.g.\& \fB14\fR) or hexadecimal with
+the \fB0x\fR prefix (e.g.\& \fB0x00E\fR).
+.TP
+.B \-\-help
+Display usage information and exit.
+.SH NOTES
+When using the PUB/SUB pattern, ZeroMQ discards messages for categories that
+have no connected subscribers at the time of sending.
+Once
+.BR trigger-scalers (1)
+connects and subscribes, all subsequent messages are delivered normally.
+There is no message replay for missed events; the receiver's running totals
+simply start accumulating from the point of connection.
+.SH EXAMPLES
+Publish on all interfaces at port 5556 using PUB/SUB (default):
+.PP
+.nf
+zmq-sender
+.fi
+.PP
+Use PUSH/PULL instead:
+.PP
+.nf
+zmq-sender --socket-type push --endpoint tcp://0.0.0.0:5556
+.fi
+.PP
+Run at five times normal rates with a 200 ms send interval:
+.PP
+.nf
+zmq-sender --rate-scale 5 --interval-ms 200
+.fi
+.PP
+Send a single message for trigger category 14 and exit:
+.PP
+.nf
+zmq-sender --single 14
+.fi
+.PP
+Send a single message for trigger category 0x00E using hex notation:
+.PP
+.nf
+zmq-sender --single 0x00E
+.fi
+.PP
+Corresponding receiver configuration for the above:
+.PP
+.nf
+transport:
+  protocol: zeromq
+  zeromq:
+    endpoint: "tcp://127.0.0.1:5556"
+    socket_type: sub
+.fi
+.SH SEE ALSO
+.BR trigger-scalers (1),
+.BR udp-sender (1)
+.SH AUTHORS
+Mu2e DAQ Group, Fermi National Accelerator Laboratory.
