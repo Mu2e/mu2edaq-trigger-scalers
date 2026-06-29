@@ -4,6 +4,7 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 #include <QRegularExpression>
+#include <mu2edaq_discovery/Responder.hpp>
 #include <iostream>
 
 int main(int argc, char* argv[]) {
@@ -83,5 +84,30 @@ int main(int argc, char* argv[]) {
     window.resize(1100, 650);
     window.show();
 
-    return app.exec();
+    // Mu2e DAQ service discovery: advertise the active transport port so the
+    // app appears in mu2edaq-discover scans and the control room browser. The
+    // receiver is already bound by MainWindow above. Best-effort: a failure to
+    // start the responder must not stop the application.
+    mu2edaq_discovery::Responder::Options dopt;
+    dopt.name = "Trigger Scalers";
+    dopt.app = "trigger-scalers";
+    if (config.transport.protocol == "zeromq") {
+        QString ep = QString::fromStdString(config.transport.zeromq.endpoint);
+        QRegularExpressionMatch m = QRegularExpression(":(\\d+)$").match(ep);
+        dopt.port = m.hasMatch() ? m.captured(1).toInt() : 5556;
+        dopt.scheme = "tcp";
+    } else {
+        dopt.port = config.transport.udp.port;
+        dopt.scheme = "udp";
+    }
+    mu2edaq_discovery::Responder responder(dopt);
+    try {
+        responder.start();
+    } catch (const std::exception& e) {
+        std::cerr << "[Discovery] responder not started: " << e.what() << "\n";
+    }
+
+    int rc = app.exec();
+    responder.stop();
+    return rc;
 }
