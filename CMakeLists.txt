@@ -77,6 +77,19 @@ if(WITH_ZEROMQ)
 endif()
 
 # ---------------------------------------------------------------------------
+# mu2edaq-discovery (C++ Responder library) — fetched from the sibling repo.
+# Override with -DFETCHCONTENT_SOURCE_DIR_MU2EDAQ_DISCOVERY=<path> to build
+# against a local checkout.
+# ---------------------------------------------------------------------------
+include(FetchContent)
+FetchContent_Declare(mu2edaq_discovery
+    GIT_REPOSITORY https://github.com/Mu2e/mu2edaq-discovery.git
+    GIT_TAG main
+    SOURCE_SUBDIR cpp
+)
+FetchContent_MakeAvailable(mu2edaq_discovery)
+
+# ---------------------------------------------------------------------------
 # Sources
 # ---------------------------------------------------------------------------
 set(SOURCES
@@ -104,6 +117,7 @@ target_link_libraries(trigger-scalers PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     yaml-cpp::yaml-cpp
+    mu2edaq_discovery::mu2edaq_discovery
 )
 
 if(WITH_ZEROMQ)
