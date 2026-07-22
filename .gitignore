@@ -4,3 +4,7 @@ build/
 *.so
 *.dylib
 build.log
+
+# Runtime state
+trigger-scalers.pid
+trigger-scalers.log
